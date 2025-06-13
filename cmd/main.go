@@ -29,6 +29,11 @@ func main() {
 
 	userHandler := handler.NewUserHandler(userUsecase)
 
+	postCollection := client.Database("webJungleDB").Collection("posts")
+	postRepo := repository.NewMongoPostRepository(postCollection)
+	postUsecase := usecase.NewPostUsecase(postRepo)
+	postHandler := handler.NewPostHandler(postUsecase)
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/users/login", func(w http.ResponseWriter, r *http.Request) {
@@ -37,10 +42,13 @@ func main() {
 	mux.HandleFunc("/users/register", func(w http.ResponseWriter, r *http.Request) {
 		userHandler.Register(w, r)
 	})
+	mux.HandleFunc("/main", func(w http.ResponseWriter, r *http.Request) {
+		postHandler.LoadAllPosts(w, r)
+	})
 
 	fmt.Println("웹 서버가 8080 포트에서 실행됩니다.")
-	handler := config.CorsMiddleware(mux)
-	list_err := http.ListenAndServe(":8080", handler)
+	server := config.CorsMiddleware(mux)
+	list_err := http.ListenAndServe(":8080", server)
 	if list_err != nil {
 		panic(list_err)
 	}
