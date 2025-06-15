@@ -45,6 +45,9 @@ func main() {
 	mux.HandleFunc("/main", func(w http.ResponseWriter, r *http.Request) {
 		postHandler.LoadAllPosts(w, r)
 	})
+	mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
+		postHandler.WritePost(w, r)
+	})
 
 	fmt.Println("웹 서버가 8080 포트에서 실행됩니다.")
 	server := config.CorsMiddleware(mux)
@@ -52,4 +55,8 @@ func main() {
 	if list_err != nil {
 		panic(list_err)
 	}
+}
+
+func SetInstances() {
+
 }

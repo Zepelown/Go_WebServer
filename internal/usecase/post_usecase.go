@@ -5,10 +5,12 @@ import (
 
 	"github.com/Zepelown/Go_WebServer/internal/repository"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/entity"
+	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/request"
 )
 
 type PostUsecase interface {
 	LoadAllPosts(ctx context.Context) ([]*entity.Post, error)
+	WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error)
 }
 
 type postUsecase struct {
@@ -27,4 +29,17 @@ func (u *postUsecase) LoadAllPosts(ctx context.Context) ([]*entity.Post, error) 
 		return nil, err
 	}
 	return posts, nil
+}
+func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error) {
+	id, err = u.repo.Save(ctx, &entity.Post{
+		Title:    request.Title,
+		Content:  request.Content,
+		Date:     request.Date,
+		Category: request.Category,
+		UserId:   request.UserId,
+	})
+	if err != nil {
+		return "", err
+	}
+	return id, nil
 }
