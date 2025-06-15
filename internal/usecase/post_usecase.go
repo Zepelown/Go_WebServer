@@ -11,6 +11,7 @@ import (
 type PostUsecase interface {
 	LoadAllPosts(ctx context.Context) ([]*entity.Post, error)
 	WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error)
+	LoadPost(ctx context.Context, id string) (*entity.Post, error)
 }
 
 type postUsecase struct {
@@ -42,4 +43,12 @@ func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRe
 		return "", err
 	}
 	return id, nil
+}
+
+func (u *postUsecase) LoadPost(ctx context.Context, id string) (*entity.Post, error) {
+	post, err := u.repo.GetOne(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return post, nil
 }

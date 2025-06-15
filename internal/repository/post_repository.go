@@ -14,6 +14,7 @@ import (
 type PostRepository interface {
 	Save(ctx context.Context, post *entity.Post) (id string, error error)
 	GetAll(ctx context.Context) ([]*entity.Post, error)
+	GetOne(ctx context.Context, id string) (*entity.Post, error)
 }
 
 type mongoPostRepository struct {
@@ -59,4 +60,20 @@ func (r *mongoPostRepository) GetAll(ctx context.Context) ([]*entity.Post, error
 	}
 
 	return posts, nil
+}
+
+func (r *mongoPostRepository) GetOne(ctx context.Context, id string) (*entity.Post, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var post entity.Post
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&post)
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, nil
 }
