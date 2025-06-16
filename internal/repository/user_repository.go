@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	entity "github.com/Zepelown/Go_WebServer/pkg/domain/entity"
@@ -14,6 +15,7 @@ type UserRepository interface {
 	Save(ctx context.Context, user *entity.User) error
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
 	IsExistEmail(ctx context.Context, email string) (bool, error)
+	FindById(ctx context.Context, id string) (*entity.User, error)
 }
 
 type mongoUserRepository struct {
@@ -55,4 +57,19 @@ func (r *mongoUserRepository) IsExistEmail(ctx context.Context, email string) (b
 	}
 
 	return false, err
+}
+
+func (r *mongoUserRepository) FindById(ctx context.Context, id string) (*entity.User, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var user entity.User
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

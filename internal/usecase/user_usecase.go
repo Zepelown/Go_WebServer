@@ -13,6 +13,7 @@ import (
 type UserUsecase interface {
 	Login(ctx context.Context, request request.UserLoginRequest) (*entity.User, error)
 	Register(ctx context.Context, request request.UserRegisterRequest) (bool, error)
+	FindById(ctx context.Context, request request.UserFindByIdRequest) (*entity.User, error)
 }
 
 // userUsecase 구조체는 인터페이스의 실제 구현체입니다.
@@ -57,6 +58,15 @@ func (uc *userUsecase) Register(ctx context.Context, request request.UserRegiste
 		return false, err
 	}
 	return true, nil
+}
+
+func (uc *userUsecase) FindById(ctx context.Context, request request.UserFindByIdRequest) (*entity.User, error) {
+	user, err := uc.repo.FindById(ctx, request.Id)
+	if err != nil {
+		log.Println("유저를 찾지 못했습니다.", err)
+		return nil, err // DB 에러를 그대로 위로 전달
+	}
+	return user, nil
 }
 
 var ErrUserAlreadyExists = errors.New("이미 존재하는 이메일입니다")

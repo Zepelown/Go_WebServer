@@ -64,3 +64,26 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response.UserRegisterResponse{Success: success})
 
 }
+
+func (h *UserHandler) FindUserById(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST 메서드만 허용됩니다", http.StatusMethodNotAllowed)
+		return
+	}
+	var req request.UserFindByIdRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "잘못된 요청 본문입니다", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	user, err := h.usecase.FindById(r.Context(), req)
+	if err != nil {
+		http.Error(w, "유저를 찾지 못했습니다.", http.StatusUnauthorized)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // 200 OK 상태 코드 반환
+
+	json.NewEncoder(w).Encode(response.UserFindByIdReponse{User: user})
+
+}
