@@ -4,24 +4,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
-	config "github.com/Zepelown/Go_WebServer/config"
+	systemConfig "github.com/Zepelown/Go_WebServer/config"
 	handler "github.com/Zepelown/Go_WebServer/internal/delivery"
 	"github.com/Zepelown/Go_WebServer/internal/repository"
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
+	"github.com/joho/godotenv"
+	"github.com/sesaquecruz/go-env-loader/pkg/env"
 )
 
 func main() {
-	// 1. MongoDB 연결 설정
-	client := config.InitMongoDb()
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: .env file not found")
+	}
+
+	var config systemConfig.EnvConfig
+	if err := env.LoadEnv(&config); err != nil {
+		log.Fatalf("error loading environment variables: %v", err)
+	}
+	client := systemConfig.InitMongoDb(config.DbUrl)
 	defer func() {
 		if err := client.Disconnect(context.TODO()); err != nil {
 			panic(err)
 		}
 	}()
 
-	// 2. 사용할 데이터베이스와 컬렉션 가져오기
 	userCollection := client.Database("webJungleDB").Collection("users")
 	userRepo := repository.NewMongoUserRepository(userCollection)
 
@@ -56,8 +66,8 @@ func main() {
 	})
 
 	fmt.Println("웹 서버가 8080 포트에서 실행됩니다.")
-	server := config.CorsMiddleware(mux)
-	list_err := http.ListenAndServe(":8080", server)
+	server := systemConfig.CorsMiddleware(mux)
+	list_err := http.ListenAndServe(config.ServerPortUrl, server)
 	if list_err != nil {
 		panic(list_err)
 	}
