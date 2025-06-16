@@ -5,34 +5,45 @@ import (
 
 	"github.com/Zepelown/Go_WebServer/internal/repository"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/entity"
+	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/dto"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/request"
 )
 
 type PostUsecase interface {
-	LoadAllPosts(ctx context.Context) ([]*entity.Post, error)
+	LoadAllPosts(ctx context.Context) ([]*dto.PostItem, error)
 	WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error)
-	LoadPost(ctx context.Context, id string) (*entity.Post, error)
+	LoadPost(ctx context.Context, id string) (*dto.PostItem, error)
 }
 
 type postUsecase struct {
-	repo repository.PostRepository
+	postRepo repository.PostRepository
+	userRepo repository.UserRepository
 }
 
-func NewPostUsecase(r repository.PostRepository) PostUsecase {
+func NewPostUsecase(postRepo repository.PostRepository, userRepo repository.UserRepository) PostUsecase {
 	return &postUsecase{
-		repo: r,
+		postRepo: postRepo,
+		userRepo: userRepo,
 	}
 }
 
-func (u *postUsecase) LoadAllPosts(ctx context.Context) ([]*entity.Post, error) {
-	posts, err := u.repo.GetAll(ctx)
+func (u *postUsecase) LoadAllPosts(ctx context.Context) ([]*dto.PostItem, error) {
+	posts, err := u.postRepo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return posts, nil
+	postItems := make([]*dto.PostItem, 0, len(posts))
+
+	for _, post := range posts {
+		user, _ := u.userRepo.FindById(ctx, post.UserId)
+		postItem := post.PostToPostItem(user)
+		postItems = append(postItems, &postItem)
+	}
+	return postItems, nil
 }
+
 func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error) {
-	id, err = u.repo.Save(ctx, &entity.Post{
+	id, err = u.postRepo.Save(ctx, &entity.Post{
 		Title:    request.Title,
 		Content:  request.Content,
 		Date:     request.Date,
@@ -45,10 +56,14 @@ func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRe
 	return id, nil
 }
 
-func (u *postUsecase) LoadPost(ctx context.Context, id string) (*entity.Post, error) {
-	post, err := u.repo.GetOne(ctx, id)
+func (u *postUsecase) LoadPost(ctx context.Context, id string) (*dto.PostItem, error) {
+	post, err := u.postRepo.GetOne(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return post, nil
+	user, _ := u.userRepo.FindById(ctx, post.UserId)
+
+	postItem := post.PostToPostItem(user)
+
+	return &postItem, nil
 }

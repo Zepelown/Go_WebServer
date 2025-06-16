@@ -31,8 +31,8 @@ func main() {
 
 	postCollection := client.Database("webJungleDB").Collection("posts")
 	postRepo := repository.NewMongoPostRepository(postCollection)
-	postUsecase := usecase.NewPostUsecase(postRepo)
-	postHandler := handler.NewPostHandler(postUsecase)
+	postUsecase := usecase.NewPostUsecase(postRepo, userRepo)
+	postHandler := handler.NewPostHandler(postUsecase, userUsecase)
 
 	mux := http.NewServeMux()
 

@@ -11,11 +11,15 @@ import (
 )
 
 type PostHandler struct {
-	usecase usecase.PostUsecase
+	postUsecase usecase.PostUsecase
+	userUsecase usecase.UserUsecase
 }
 
-func NewPostHandler(uc usecase.PostUsecase) *PostHandler {
-	return &PostHandler{usecase: uc}
+func NewPostHandler(postUC usecase.PostUsecase, userUC usecase.UserUsecase) *PostHandler {
+	return &PostHandler{
+		postUsecase: postUC,
+		userUsecase: userUC,
+	}
 }
 
 func (h *PostHandler) LoadAllPosts(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +29,7 @@ func (h *PostHandler) LoadAllPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	posts, err := h.usecase.LoadAllPosts(r.Context())
+	posts, err := h.postUsecase.LoadAllPosts(r.Context())
 	if err != nil {
 		http.Error(w, "불러오기가 실패하였습니다", http.StatusUnauthorized)
 		return
@@ -49,7 +53,7 @@ func (h *PostHandler) WritePost(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	id, err := h.usecase.WritePost(r.Context(), req)
+	id, err := h.postUsecase.WritePost(r.Context(), req)
 	if err != nil {
 		http.Error(w, "잘못된 형식입니다", http.StatusUnauthorized)
 		return
@@ -73,7 +77,7 @@ func (h *PostHandler) LoadOnePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := h.usecase.LoadPost(r.Context(), id)
+	post, err := h.postUsecase.LoadPost(r.Context(), id)
 	if err != nil {
 		http.Error(w, "불러오기가 실패하였습니다", http.StatusUnauthorized)
 		return

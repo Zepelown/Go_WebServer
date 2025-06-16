@@ -1,7 +1,8 @@
 package response
 
-import "github.com/Zepelown/Go_WebServer/pkg/domain/entity"
+import "github.com/Zepelown/Go_WebServer/pkg/domain/payload/dto"
 
 type PostLoadOneReponse struct {
-	Post *entity.Post
+	Post *dto.PostItem
+	// comment 추가 해야 함
 }

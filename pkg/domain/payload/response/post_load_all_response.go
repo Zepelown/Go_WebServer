@@ -1,7 +1,7 @@
 package response
 
-import "github.com/Zepelown/Go_WebServer/pkg/domain/entity"
+import "github.com/Zepelown/Go_WebServer/pkg/domain/payload/dto"
 
 type PostLoadAllReponse struct {
-	Posts []*entity.Post
+	Posts []*dto.PostItem
 }
