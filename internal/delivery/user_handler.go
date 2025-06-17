@@ -7,6 +7,7 @@ import (
 
 	"github.com/Zepelown/Go_WebServer/config"
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
+	"github.com/Zepelown/Go_WebServer/pkg/appcontext"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/request"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/response"
 	"github.com/Zepelown/Go_WebServer/pkg/util"
@@ -81,7 +82,7 @@ func (h *UserHandler) FindUserById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	user, err := h.usecase.FindById(r.Context(), req)
+	user, err := h.usecase.FindById(r.Context(), req.Id)
 	if err != nil {
 		http.Error(w, "유저를 찾지 못했습니다.", http.StatusUnauthorized)
 		return
@@ -90,5 +91,25 @@ func (h *UserHandler) FindUserById(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK) // 200 OK 상태 코드 반환
 
 	json.NewEncoder(w).Encode(response.UserFindByIdReponse{User: user})
+}
 
+func (h *UserHandler) FindUserByToken(w http.ResponseWriter, r *http.Request) {
+	claims, ok := appcontext.GetUserClaims(r.Context())
+	if !ok {
+		// 미들웨어를 통과했다면 이 에러는 거의 발생하지 않지만, 안전장치로 둡니다.
+		http.Error(w, "Could not retrieve user info from context", http.StatusInternalServerError)
+		return
+	}
+	user, err := h.usecase.FindById(r.Context(), claims.Subject)
+	if err != nil {
+		http.Error(w, "유저를 찾지 못했습니다.", http.StatusUnauthorized)
+		return
+	}
+	response := map[string]string{
+		"username": user.Name,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

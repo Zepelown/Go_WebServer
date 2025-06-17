@@ -13,20 +13,13 @@ import (
 type UserUsecase interface {
 	Login(ctx context.Context, request request.UserLoginRequest) (*entity.User, error)
 	Register(ctx context.Context, request request.UserRegisterRequest) (bool, error)
-	FindById(ctx context.Context, request request.UserFindByIdRequest) (*entity.User, error)
+	FindById(ctx context.Context, id string) (*entity.User, error)
 }
 
-// userUsecase 구조체는 인터페이스의 실제 구현체입니다.
-// 비공개(소문자)로 선언하여 외부에서 직접 접근하지 못하게 합니다.
 type userUsecase struct {
-	// 데이터베이스 접근을 위한 리포지토리 '인터페이스'에 의존합니다.
-	// 실제 DB가 MySQL인지, 메모리인지 등은 전혀 알 필요가 없습니다.
 	repo repository.UserRepository
 }
 
-// NewUserUsecase는 userUsecase의 생성자 함수입니다.
-// main.go에서 리포지토리 구현체를 주입받아 usecase 인스턴스를 생성합니다.
-// 반환 타입은 '인터페이스'로 하여, 호출하는 쪽이 구현체에 의존하지 않도 합니다.
 func NewUserUsecase(r repository.UserRepository) UserUsecase {
 	return &userUsecase{
 		repo: r,
@@ -60,8 +53,8 @@ func (uc *userUsecase) Register(ctx context.Context, request request.UserRegiste
 	return true, nil
 }
 
-func (uc *userUsecase) FindById(ctx context.Context, request request.UserFindByIdRequest) (*entity.User, error) {
-	user, err := uc.repo.FindById(ctx, request.Id)
+func (uc *userUsecase) FindById(ctx context.Context, id string) (*entity.User, error) {
+	user, err := uc.repo.FindById(ctx, id)
 	if err != nil {
 		log.Println("유저를 찾지 못했습니다.", err)
 		return nil, err // DB 에러를 그대로 위로 전달

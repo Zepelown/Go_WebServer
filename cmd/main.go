@@ -56,6 +56,7 @@ func main() {
 	mux.HandleFunc("/users/find", func(w http.ResponseWriter, r *http.Request) {
 		userHandler.FindUserById(w, r)
 	})
+	mux.Handle("/users/auth", middleware.JwtAuthMiddleware(http.HandlerFunc(userHandler.FindUserByToken), config))
 	mux.Handle("/main", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.LoadAllPosts), config))
 	mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
 		postHandler.WritePost(w, r)
