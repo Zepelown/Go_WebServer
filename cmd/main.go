@@ -11,6 +11,7 @@ import (
 	handler "github.com/Zepelown/Go_WebServer/internal/delivery"
 	"github.com/Zepelown/Go_WebServer/internal/repository"
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
+	"github.com/Zepelown/Go_WebServer/pkg/middleware"
 	"github.com/joho/godotenv"
 	"github.com/sesaquecruz/go-env-loader/pkg/env"
 )
@@ -47,7 +48,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/users/login", func(w http.ResponseWriter, r *http.Request) {
-		userHandler.Login(w, r)
+		userHandler.Login(w, r, config)
 	})
 	mux.HandleFunc("/users/register", func(w http.ResponseWriter, r *http.Request) {
 		userHandler.Register(w, r)
@@ -55,9 +56,7 @@ func main() {
 	mux.HandleFunc("/users/find", func(w http.ResponseWriter, r *http.Request) {
 		userHandler.FindUserById(w, r)
 	})
-	mux.HandleFunc("/main", func(w http.ResponseWriter, r *http.Request) {
-		postHandler.LoadAllPosts(w, r)
-	})
+	mux.Handle("/main", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.LoadAllPosts), config))
 	mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
 		postHandler.WritePost(w, r)
 	})
