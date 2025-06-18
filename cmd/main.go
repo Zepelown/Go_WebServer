@@ -35,16 +35,19 @@ func main() {
 	}()
 
 	userCollection := client.Database("webJungleDB").Collection("users")
+	postCollection := client.Database("webJungleDB").Collection("posts")
+	commentCollection := client.Database("webJungleDB").Collection("comments")
+
 	userRepo := repository.NewMongoUserRepository(userCollection)
+	postRepo := repository.NewMongoPostRepository(postCollection)
+	commentRepo := repository.NewMongoCommentRepository(commentCollection)
 
 	userUsecase := usecase.NewUserUsecase(userRepo)
+	postUsecase := usecase.NewPostUsecase(postRepo, userRepo)
+	commentUsecase := usecase.NewCommentUsecase(postRepo, userRepo, commentRepo)
 
 	userHandler := handler.NewUserHandler(userUsecase)
-
-	postCollection := client.Database("webJungleDB").Collection("posts")
-	postRepo := repository.NewMongoPostRepository(postCollection)
-	postUsecase := usecase.NewPostUsecase(postRepo, userRepo)
-	postHandler := handler.NewPostHandler(postUsecase, userUsecase)
+	postHandler := handler.NewPostHandler(postUsecase, userUsecase, commentUsecase)
 
 	mux := http.NewServeMux()
 
@@ -56,13 +59,9 @@ func main() {
 	})
 	mux.Handle("/users/auth", middleware.JwtAuthMiddleware(http.HandlerFunc(userHandler.FindUserByToken), config))
 	mux.Handle("/main", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.LoadAllPosts), config))
-	mux.Handle("/post", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.WritePost), config))
-	// mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
-	// 	postHandler.WritePost(w, r)
-	// })
-	mux.HandleFunc("/post/", func(w http.ResponseWriter, r *http.Request) {
-		postHandler.LoadOnePost(w, r)
-	})
+	mux.HandleFunc("POST /post", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.WritePost), config).ServeHTTP)
+	mux.HandleFunc("GET /post/{id}", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.LoadOnePost), config).ServeHTTP)
+	mux.HandleFunc("POST /post/{postId}/comment", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.WriteComment), config).ServeHTTP)
 
 	fmt.Println("웹 서버가 8080 포트에서 실행됩니다.")
 	c := cors.New(cors.Options{

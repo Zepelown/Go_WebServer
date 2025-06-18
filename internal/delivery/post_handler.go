@@ -3,7 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http" // 웹 서버 기능
-	"strings"
+
+	// "strings" // 더 이상 필요하지 않으므로 제거할 수 있습니다.
 
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
 	"github.com/Zepelown/Go_WebServer/pkg/appcontext"
@@ -12,22 +13,25 @@ import (
 )
 
 type PostHandler struct {
-	postUsecase usecase.PostUsecase
-	userUsecase usecase.UserUsecase
+	postUsecase    usecase.PostUsecase
+	userUsecase    usecase.UserUsecase
+	commentUsecase usecase.CommentUsecase
 }
 
-func NewPostHandler(postUC usecase.PostUsecase, userUC usecase.UserUsecase) *PostHandler {
+func NewPostHandler(
+	postUC usecase.PostUsecase,
+	userUC usecase.UserUsecase,
+	commentUC usecase.CommentUsecase) *PostHandler {
 	return &PostHandler{
-		postUsecase: postUC,
-		userUsecase: userUC,
+		postUsecase:    postUC,
+		userUsecase:    userUC,
+		commentUsecase: commentUC,
 	}
 }
 
+// LoadAllPosts 핸들러 (HTTP 메서드 확인 제거)
 func (h *PostHandler) LoadAllPosts(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "GET 메서드만 허용됩니다", http.StatusMethodNotAllowed)
-		return
-	}
+	// main.go에서 "GET"으로 라우팅되므로 메서드 확인이 필요 없습니다.
 	defer r.Body.Close()
 
 	posts, err := h.postUsecase.LoadAllPosts(r.Context())
@@ -37,16 +41,13 @@ func (h *PostHandler) LoadAllPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200 OK 상태 코드 반환
-
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response.PostLoadAllReponse{Posts: posts})
 }
 
+// WritePost 핸들러 (HTTP 메서드 확인 제거)
 func (h *PostHandler) WritePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "POST 메서드만 허용됩니다", http.StatusMethodNotAllowed)
-		return
-	}
+	// main.go에서 "POST"로 라우팅되므로 메서드 확인이 필요 없습니다.
 	var req request.WritePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "잘못된 요청 본문입니다", http.StatusBadRequest)
@@ -55,7 +56,6 @@ func (h *PostHandler) WritePost(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	claims, ok := appcontext.GetUserClaims(r.Context())
 	if !ok {
-		// 미들웨어를 통과했다면 이 에러는 거의 발생하지 않지만, 안전장치로 둡니다.
 		http.Error(w, "Could not retrieve user info from context", http.StatusInternalServerError)
 		return
 	}
@@ -66,20 +66,18 @@ func (h *PostHandler) WritePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200 OK 상태 코드 반환
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response.WritePostResponse{ID: id})
 }
 
+// LoadOnePost 핸들러 (r.PathValue 사용 및 메서드 확인 제거)
 func (h *PostHandler) LoadOnePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "GET 메서드만 허용됩니다", http.StatusMethodNotAllowed)
-		return
-	}
+	// main.go에서 "GET"으로 라우팅되므로 메서드 확인이 필요 없습니다.
 	defer r.Body.Close()
 
-	id := strings.TrimPrefix(r.URL.Path, "/post/")
+	// 변경된 부분: r.PathValue를 사용하여 경로 변수 "id"를 가져옵니다.
+	id := r.PathValue("id")
 	if id == "" {
-		// ID가 없는 경우, 예를 들어 /post/ 로만 요청이 온 경우
 		http.Error(w, "게시글 ID가 필요합니다.", http.StatusBadRequest)
 		return
 	}
@@ -90,8 +88,44 @@ func (h *PostHandler) LoadOnePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200 OK 상태 코드 반환
+	comments, err := h.commentUsecase.LoadAllCommentsInPost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "댓글 불러오기가 실패하였습니다", http.StatusUnauthorized)
+		return
+	}
 
-	json.NewEncoder(w).Encode(response.PostLoadOneReponse{Post: post})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response.PostLoadOneReponse{Post: post, Comment: comments})
+}
+
+// WriteComment 핸들러 (수정 필요 없음 - 이미 올바르게 작성됨)
+func (h *PostHandler) WriteComment(w http.ResponseWriter, r *http.Request) {
+	postId := r.PathValue("postId")
+	if postId == "" {
+		http.Error(w, "Post ID is required", http.StatusBadRequest)
+		return
+	}
+	var req request.WriteCommentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "잘못된 요청 본문입니다", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	claims, ok := appcontext.GetUserClaims(r.Context())
+	if !ok {
+		http.Error(w, "Could not retrieve user info from context", http.StatusInternalServerError)
+		return
+	}
+
+	id, err := h.commentUsecase.WriteComment(r.Context(), claims.Subject, postId, req)
+	if err != nil {
+		http.Error(w, "댓글 작성이 실패하였습니다", http.StatusUnauthorized)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"id": id,
+	})
 }
