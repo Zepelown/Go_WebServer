@@ -2,6 +2,7 @@ package middleware // 미들웨어는 별도 패키지로 관리하는 것이 �
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/Zepelown/Go_WebServer/config"
 	"github.com/Zepelown/Go_WebServer/pkg/appcontext"
@@ -16,25 +17,24 @@ const userContextKey = contextKey("userClaims")
 
 func JwtAuthMiddleware(next http.Handler, config config.EnvConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 1. 요청에서 'token' 쿠키를 가져옵니다.
-		c, err := r.Cookie("token")
-		if err != nil {
-			if err == http.ErrNoCookie {
-				// 쿠키가 없는 경우, 401 Unauthorized 응답
-				http.Error(w, "Unauthorized: No token provided", http.StatusUnauthorized)
-				return
-			}
-			// 다른 종류의 에러인 경우 (예: 잘못된 요청)
-			http.Error(w, "Bad Request", http.StatusBadRequest)
+
+		// 1. 요청 헤더에서 'Authorization' 값을 가져옵니다.
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Unauthorized: No token provided", http.StatusUnauthorized)
 			return
 		}
 
-		// 2. 쿠키 값(토큰 문자열)을 가져옵니다.
-		tokenString := c.Value
-		claims := &dto.Claims{} // 기존에 사용하시던 Claims 구조체
+		// 2. "Bearer <token>" 형식에서 토큰 부분만 추출합니다.
+		headerParts := strings.Split(authHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			http.Error(w, "Unauthorized: Invalid token format", http.StatusUnauthorized)
+			return
+		}
+		tokenString := headerParts[1]
 
-		// 3. 토큰을 파싱하고 유효성을 검증합니다.
-		// jwt.ParseWithClaims는 서명, 만료 시간(exp) 등을 모두 검증해줍니다[8].
+		// 3. 토큰 파싱 및 검증 로직은 이전과 동일합니다.
+		claims := &dto.Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(config.JwtSecretKey), nil
 		})

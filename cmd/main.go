@@ -13,6 +13,7 @@ import (
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
 	"github.com/Zepelown/Go_WebServer/pkg/middleware"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"github.com/sesaquecruz/go-env-loader/pkg/env"
 )
 
@@ -55,16 +56,24 @@ func main() {
 	})
 	mux.Handle("/users/auth", middleware.JwtAuthMiddleware(http.HandlerFunc(userHandler.FindUserByToken), config))
 	mux.Handle("/main", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.LoadAllPosts), config))
-	mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
-		postHandler.WritePost(w, r)
-	})
+	mux.Handle("/post", middleware.JwtAuthMiddleware(http.HandlerFunc(postHandler.WritePost), config))
+	// mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
+	// 	postHandler.WritePost(w, r)
+	// })
 	mux.HandleFunc("/post/", func(w http.ResponseWriter, r *http.Request) {
 		postHandler.LoadOnePost(w, r)
 	})
 
 	fmt.Println("웹 서버가 8080 포트에서 실행됩니다.")
-	server := systemConfig.CorsMiddleware(mux)
-	list_err := http.ListenAndServe(config.ServerPortUrl, server)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		Debug:            true,
+	})
+	handler := c.Handler(mux)
+	list_err := http.ListenAndServe(config.ServerPortUrl, handler)
 	if list_err != nil {
 		panic(list_err)
 	}

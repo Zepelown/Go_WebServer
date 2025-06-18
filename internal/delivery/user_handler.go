@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http" // 웹 서버 기능
 
 	"github.com/Zepelown/Go_WebServer/config"
@@ -39,14 +38,23 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request, config confi
 		return
 	}
 	// 수정된 함수를 호출하고 에러를 확인합니다.
-	if err := util.ProvideTokenCookie(w, config, user.ID, user.Name); err != nil {
-		log.Printf("쿠키 제공 실패: %v\n", err)
-		http.Error(w, "서버 내부 오류로 토큰을 발급하지 못했습니다", http.StatusInternalServerError)
-		return // 에러 발생 시 핸들러를 확실히 종료합니다.
+	// if err := util.ProvideTokenCookie(w, config, user.ID, user.Name); err != nil {
+	// 	log.Printf("쿠키 제공 실패: %v\n", err)
+	// 	http.Error(w, "서버 내부 오류로 토큰을 발급하지 못했습니다", http.StatusInternalServerError)
+	// 	return // 에러 발생 시 핸들러를 확실히 종료합니다.
+	// }
+	tokenString, err := util.ProvideToken(w, config, user.ID, user.Name)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response.LoginResponse{User: *user})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": tokenString,
+	})
+	// json.NewEncoder(w).Encode(response.LoginResponse{User: *user})
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {

@@ -8,4 +8,5 @@ type EnvConfig struct {
 	JwtAcessTokenTTL   string `env:"ACCESS_TOKEN_TTL"`
 	JwtRefreshTokenTTL string `env:"REFRESH_TOKEN_TTL"`
 	JwtIssuer          string `env:"JWT_ISSUER"`
+	AppEnv             string `env:"APP_ENV"`
 }

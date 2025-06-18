@@ -33,13 +33,26 @@ func ProvideTokenCookie(w http.ResponseWriter, config config.EnvConfig, userID p
 	}
 
 	// 생성된 토큰을 클라이언트 쿠키에 설정
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     "token",
 		Value:    tokenString,
 		Expires:  expirationTime,
 		HttpOnly: true,
-		Path:     "/",
-	})
-	log.Println("쿠키 설저 완료")
+		Path:     "/", // 경로를 명시적으로 '/'로 설정하는 것이 좋습니다.
+	}
+
+	if config.AppEnv == "production" {
+		cookie.SameSite = http.SameSiteNoneMode
+		cookie.Secure = true
+		// cookie.Domain = "your-actual-domain.com" // 배포 시 실제 도메인 설정
+	} else {
+		// ★★★★★ 수정 포인트 2: 로컬 개발 환경일 때, 쿠키가 적용될 도메인을 명시적으로 설정합니다.
+		cookie.Domain = "my-dev-domain.com"
+		// SameSite=Lax와 Secure=false도 명시적으로 설정해주는 것이 안전합니다.
+		cookie.SameSite = http.SameSiteLaxMode
+		cookie.Secure = false
+	}
+	http.SetCookie(w, cookie)
+	log.Println("쿠키 설정 완료")
 	return nil
 }

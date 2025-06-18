@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Zepelown/Go_WebServer/internal/usecase"
+	"github.com/Zepelown/Go_WebServer/pkg/appcontext"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/request"
 	"github.com/Zepelown/Go_WebServer/pkg/domain/payload/response"
 )
@@ -52,8 +53,14 @@ func (h *PostHandler) WritePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+	claims, ok := appcontext.GetUserClaims(r.Context())
+	if !ok {
+		// 미들웨어를 통과했다면 이 에러는 거의 발생하지 않지만, 안전장치로 둡니다.
+		http.Error(w, "Could not retrieve user info from context", http.StatusInternalServerError)
+		return
+	}
 
-	id, err := h.postUsecase.WritePost(r.Context(), req)
+	id, err := h.postUsecase.WritePost(r.Context(), req, claims.Subject)
 	if err != nil {
 		http.Error(w, "잘못된 형식입니다", http.StatusUnauthorized)
 		return

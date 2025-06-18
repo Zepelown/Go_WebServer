@@ -11,7 +11,7 @@ import (
 
 type PostUsecase interface {
 	LoadAllPosts(ctx context.Context) ([]*dto.PostItem, error)
-	WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error)
+	WritePost(ctx context.Context, request request.WritePostRequest, userId string) (id string, err error)
 	LoadPost(ctx context.Context, id string) (*dto.PostItem, error)
 }
 
@@ -42,13 +42,13 @@ func (u *postUsecase) LoadAllPosts(ctx context.Context) ([]*dto.PostItem, error)
 	return postItems, nil
 }
 
-func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRequest) (id string, err error) {
+func (u *postUsecase) WritePost(ctx context.Context, request request.WritePostRequest, userId string) (id string, err error) {
 	id, err = u.postRepo.Save(ctx, &entity.Post{
 		Title:    request.Title,
 		Content:  request.Content,
 		Date:     request.Date,
 		Category: request.Category,
-		UserId:   request.UserId,
+		UserId:   userId,
 	})
 	if err != nil {
 		return "", err
