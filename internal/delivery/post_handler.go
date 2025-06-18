@@ -126,6 +126,9 @@ func (h *PostHandler) WriteComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
-		"id": id,
+		"id":       id,
+		"content":  req.Content,
+		"date":     req.Date,
+		"username": claims.Username,
 	})
 }
